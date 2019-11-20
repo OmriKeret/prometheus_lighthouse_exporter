@@ -2,6 +2,7 @@
 
 'use strict';
 
+const fs = require('fs');
 const http = require('http');
 const url = require('url');
 const puppeteer = require('puppeteer');
@@ -26,6 +27,7 @@ http.createServer(async (req, res) => {
 
     if(q.pathname == '/probe'){
         var target = q.query.target;
+        var htmlReport = q.query.htmlReport;
         var configUnparsed = q.query.config;
 
         var data = [];
@@ -41,7 +43,7 @@ http.createServer(async (req, res) => {
 
             await lighthouse(target, {
                 port: url.parse(browser.wsEndpoint()).port,
-                output: 'json',
+                output: htmlReport ? 'html' : 'json',
                 ...config
             })
                 .then(results => {
@@ -65,6 +67,10 @@ http.createServer(async (req, res) => {
                     data.push(`lighthouse_timings{audit="first-cpu-idle"} ${Math.round(audits["first-cpu-idle"].numericValue)}`);
                     data.push(`lighthouse_timings{audit="interactive"} ${Math.round(audits["interactive"].numericValue)}`);
                     data.push(`lighthouse_timings{audit="estimated-input-latency"} ${Math.round(audits["estimated-input-latency"].numericValue)}`);
+
+                    if (htmlReport) {
+                        fs.writeFile(`./reports/report-${(new Date())x.toISOString()}.html`, results.report, () => {});
+                    }
                 })
                 .catch(error => {
                     console.error("Lighthouse", Date(), error);
