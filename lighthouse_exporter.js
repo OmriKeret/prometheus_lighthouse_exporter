@@ -12,7 +12,7 @@ var Mutex = require('async-mutex').Mutex;
 
 var argv = minimist(process.argv.slice(2));
 
-var port = 9593;
+var port = process.env.PORT || 9593;
 
 if('p' in argv){
     port = argv.p;
