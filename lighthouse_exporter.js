@@ -29,7 +29,7 @@ http.createServer(async (req, res) => {
         var target = q.query.target;
         var htmlReport = q.query.htmlReport;
         var configUnparsed = q.query.config;
-
+        var strategies = Array.isArray(q.query.strategies) ? q.query.strategies : ['mobile'] ;
         var data = [];
 
         
@@ -40,43 +40,47 @@ http.createServer(async (req, res) => {
             data.push('# HELP lighthouse_exporter_info Exporter Info');
             data.push('# TYPE lighthouse_exporter_info gauge');
             data.push(`lighthouse_exporter_info{version="0.2.4",chrome_version="${await browser.version()}",node_version="${process.version}"} 1`);
+            for (const index in strategies) {
+                const strategy = strategies[index];
+                await lighthouse(target, {
+                    port: url.parse(browser.wsEndpoint()).port,
+                    output: htmlReport ? 'html' : 'json',
+                    emulatedFormFactor: strategy,
+                    ...config
+                 })
+                    .then( results => {
+                        data.push('# HELP lighthouse_score The Score per Category');
+                        data.push('# TYPE lighthouse_score gauge');
+    
+                        for(var category in results.lhr.categories){
+                            var item = results.lhr.categories[category];
+    
+                            data.push(`lighthouse_score{category="${category}", strategy="${strategy}"} ${item.score * 100}`);
+                        }
+    
+                        var audits = results.lhr.audits;
+    
+                        data.push('# HELP lighthouse_timings Audit timings in ms');
+                        data.push('# TYPE lighthouse_timings gauge');
+    
+                        data.push(`lighthouse_timings{audit="first-contentful-paint", strategy="${strategy}"} ${Math.round(audits["first-contentful-paint"].numericValue)}`);
+                        data.push(`lighthouse_timings{audit="first-meaningful-paint", strategy="${strategy}"} ${Math.round(audits["first-meaningful-paint"].numericValue)}`);
+                        data.push(`lighthouse_timings{audit="speed-index", strategy="${strategy}"} ${Math.round(audits["speed-index"].numericValue)}`);
+                        data.push(`lighthouse_timings{audit="first-cpu-idle", strategy="${strategy}"} ${Math.round(audits["first-cpu-idle"].numericValue)}`);
+                        data.push(`lighthouse_timings{audit="interactive", strategy="${strategy}"} ${Math.round(audits["interactive"].numericValue)}`);
+                        data.push(`lighthouse_timings{audit="estimated-input-latency", strategy="${strategy}"} ${Math.round(audits["estimated-input-latency"].numericValue)}`);
+                        if (htmlReport) {
+                            fs.writeFile(`./reports/${strategy}_${(new Date()).toISOString()}.html`, results.report, () => {});
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Lighthouse", Date(), error);
+                    });
+            
+            }
 
-            await lighthouse(target, {
-                port: url.parse(browser.wsEndpoint()).port,
-                output: htmlReport ? 'html' : 'json',
-                ...config
-            })
-                .then(results => {
-                    data.push('# HELP lighthouse_score The Score per Category');
-                    data.push('# TYPE lighthouse_score gauge');
 
-                    for(var category in results.lhr.categories){
-                        var item = results.lhr.categories[category];
-
-                        data.push(`lighthouse_score{category="${category}"} ${item.score * 100}`);
-                    }
-
-                    var audits = results.lhr.audits;
-
-                    data.push('# HELP lighthouse_timings Audit timings in ms');
-                    data.push('# TYPE lighthouse_timings gauge');
-
-                    data.push(`lighthouse_timings{audit="first-contentful-paint"} ${Math.round(audits["first-contentful-paint"].numericValue)}`);
-                    data.push(`lighthouse_timings{audit="first-meaningful-paint"} ${Math.round(audits["first-meaningful-paint"].numericValue)}`);
-                    data.push(`lighthouse_timings{audit="speed-index"} ${Math.round(audits["speed-index"].numericValue)}`);
-                    data.push(`lighthouse_timings{audit="first-cpu-idle"} ${Math.round(audits["first-cpu-idle"].numericValue)}`);
-                    data.push(`lighthouse_timings{audit="interactive"} ${Math.round(audits["interactive"].numericValue)}`);
-                    data.push(`lighthouse_timings{audit="estimated-input-latency"} ${Math.round(audits["estimated-input-latency"].numericValue)}`);
-
-                    if (htmlReport) {
-                        fs.writeFile(`./reports/report-${(new Date())x.toISOString()}.html`, results.report, () => {});
-                    }
-                })
-                .catch(error => {
-                    console.error("Lighthouse", Date(), error);
-                });
-
-            await browser.close();
+        await browser.close();
         } catch(error) {
             console.error("Generic", Date(), error);
         }
