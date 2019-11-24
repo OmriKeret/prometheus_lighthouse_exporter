@@ -8,12 +8,14 @@ const url = require('url');
 const puppeteer = require('puppeteer');
 const lighthouse = require('lighthouse');
 const minimist = require('minimist');
+const gcs = require('./storage/gcs');
 var Mutex = require('async-mutex').Mutex;
 
 var argv = minimist(process.argv.slice(2));
 
 var port = process.env.PORT || 9593;
 var browserWSEndpoint = process.env.WS_ENDPOINT;
+var useGCS = process.env.GCS;
 if('p' in argv){
     port = argv.p;
 }
@@ -70,7 +72,12 @@ http.createServer(async (req, res) => {
                         data.push(`lighthouse_timings{audit="interactive", strategy="${strategy}"} ${Math.round(audits["interactive"].numericValue)}`);
                         data.push(`lighthouse_timings{audit="estimated-input-latency", strategy="${strategy}"} ${Math.round(audits["estimated-input-latency"].numericValue)}`);
                         if (htmlReport) {
-                            fs.writeFile(`./reports/${strategy}_${(new Date()).toISOString()}.html`, results.report, () => {});
+                            const fileName = `./reports/${target}_${strategy}_${(new Date()).toISOString()}.html`;
+                            if (useGCS) {
+                                gcs.uploadFile(results.report, `/performance_audit/reports/${fileName}`,'static');
+                            } else {
+                                fs.writeFile(fileName, results.report, () => {});
+                            }
                         }
                     })
                     .catch(error => {
