@@ -13,7 +13,7 @@ var Mutex = require('async-mutex').Mutex;
 var argv = minimist(process.argv.slice(2));
 
 var port = process.env.PORT || 9593;
-
+var browserWSEndpoint = process.env.WS_ENDPOINT;
 if('p' in argv){
     port = argv.p;
 }
@@ -35,7 +35,7 @@ http.createServer(async (req, res) => {
         
         try{
             var config = configUnparsed ? JSON.parse(configUnparsed) : {};
-            const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']});
+            const browser = browserWSEndpoint ? await puppeteer.connect({browserWSEndpoint}) : await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']});
 
             data.push('# HELP lighthouse_exporter_info Exporter Info');
             data.push('# TYPE lighthouse_exporter_info gauge');
