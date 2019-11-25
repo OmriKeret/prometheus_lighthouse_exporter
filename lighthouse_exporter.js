@@ -44,13 +44,16 @@ http.createServer(async (req, res) => {
             data.push(`lighthouse_exporter_info{version="0.2.4",chrome_version="${await browser.version()}",node_version="${process.version}"} 1`);
             for (const index in strategies) {
                 const strategy = strategies[index];
+                console.log(`Starting lighthouse on target`)
                 await lighthouse(target, {
                     port: url.parse(browser.wsEndpoint()).port,
                     output: htmlReport ? 'html' : 'json',
                     emulatedFormFactor: strategy,
                     ...config
                  })
-                    .then( results => {
+                    .then(async results => {
+                        console.log(`Finished auditing ${strategy}`);
+
                         data.push('# HELP lighthouse_score The Score per Category');
                         data.push('# TYPE lighthouse_score gauge');
     
@@ -71,11 +74,13 @@ http.createServer(async (req, res) => {
                         data.push(`lighthouse_timings{audit="first-cpu-idle", strategy="${strategy}"} ${Math.round(audits["first-cpu-idle"].numericValue)}`);
                         data.push(`lighthouse_timings{audit="interactive", strategy="${strategy}"} ${Math.round(audits["interactive"].numericValue)}`);
                         data.push(`lighthouse_timings{audit="estimated-input-latency", strategy="${strategy}"} ${Math.round(audits["estimated-input-latency"].numericValue)}`);
+                        
                         if (htmlReport) {
+                            console.log(`Start uploading result to GCS`);
                             const now = new Date();
                             const fileName = `${now.toISOString()}.html`;
                             if (useGCS) {
-                                gcs.uploadFile(results.report, `/performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}}/${target}/${strategy}/${fileName}`,'static');
+                                await gcs.uploadFile(results.report, `/performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}}/${target}/${strategy}/${fileName}`,'static');
                             } else {
                                 fs.writeFile(fileName, results.report, () => {});
                             }
@@ -87,7 +92,7 @@ http.createServer(async (req, res) => {
             
             }
 
-
+        console.log('finished auditing succesfully');
         await browser.close();
         } catch(error) {
             console.error("Generic", Date(), error);
