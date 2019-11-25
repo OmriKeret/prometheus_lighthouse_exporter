@@ -37,8 +37,9 @@ http.createServer(async (req, res) => {
         
         try{
             var config = configUnparsed ? JSON.parse(configUnparsed) : {};
+            console.log('connecting to browser...');
             const browser = browserWSEndpoint ? await puppeteer.connect({browserWSEndpoint}) : await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']});
-
+            console.log('connected browser successfuly...');
             data.push('# HELP lighthouse_exporter_info Exporter Info');
             data.push('# TYPE lighthouse_exporter_info gauge');
             data.push(`lighthouse_exporter_info{version="0.2.4",chrome_version="${await browser.version()}",node_version="${process.version}"} 1`);
