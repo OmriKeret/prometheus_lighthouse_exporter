@@ -73,9 +73,9 @@ http.createServer(async (req, res) => {
                         data.push(`lighthouse_timings{audit="estimated-input-latency", strategy="${strategy}"} ${Math.round(audits["estimated-input-latency"].numericValue)}`);
                         if (htmlReport) {
                             const now = new Date();
-                            const fileName = `./reports/${target}_${strategy}_${now.toISOString()}.html`;
+                            const fileName = `${now.toISOString()}.html`;
                             if (useGCS) {
-                                gcs.uploadFile(results.report, `/performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}}/${fileName}`,'static');
+                                gcs.uploadFile(results.report, `/performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}}/${target}/${strategy}/${fileName}`,'static');
                             } else {
                                 fs.writeFile(fileName, results.report, () => {});
                             }
