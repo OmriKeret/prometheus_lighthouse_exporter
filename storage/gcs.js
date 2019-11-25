@@ -1,5 +1,10 @@
 const { Storage } = require('@google-cloud/storage');
-const storage = new Storage();
+const projectId = process.env.GCS_PROJECT_ID;
+const keyFileName = process.env.GCS_KEY_FILE_NAME;
+const storage = new Storage({
+  projectId,
+  keyFileName
+});
 
 module.exports = {
   /**
@@ -14,5 +19,6 @@ module.exports = {
 
     const file = myBucket.file(filePath);
 
-    return file.save(contents)
+    return file.save(contents);
+  }
 };
