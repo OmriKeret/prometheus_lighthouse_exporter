@@ -15,7 +15,10 @@ var argv = minimist(process.argv.slice(2));
 
 var port = process.env.PORT || 9593;
 var browserWSEndpoint = process.env.WS_ENDPOINT;
-var useGCS = process.env.GCS;
+var useGCS = Boolean(process.env.GCS);
+var GCSBucket = process.env.GCS_BUCKET;
+
+
 if('p' in argv){
     port = argv.p;
 }
@@ -80,8 +83,8 @@ http.createServer(async (req, res) => {
                             console.log(`Start uploading result to GCS`);
                             const now = new Date();
                             const fileName = `${now.toISOString()}.html`;
-                            if (useGCS) {
-                                await gcs.uploadFile(results.report, `/performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}}/${target}/${strategy}/${fileName}`,'static');
+                            if (useGCS && GCSBucket) {
+                                await gcs.uploadFile(results.report, `/performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}}/${target}/${strategy}/${fileName}`, GCSBucket);
                             } else {
                                 fs.writeFile(fileName, results.report, () => {});
                             }
