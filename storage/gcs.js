@@ -19,6 +19,6 @@ module.exports = {
 
     const file = myBucket.file(filePath);
 
-    return file.save(contents);
+    return file.save(content);
   }
 };
