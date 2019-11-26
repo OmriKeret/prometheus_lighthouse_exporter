@@ -18,7 +18,7 @@ var browserWSEndpoint = process.env.WS_ENDPOINT;
 var useGCS = Boolean(process.env.GCS);
 var GCSBucket = process.env.GCS_BUCKET;
 
-
+console.log(`use gcs is: ${useGCS}, use bucket is ${GCSBucket}`);
 if('p' in argv){
     port = argv.p;
 }
