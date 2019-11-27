@@ -16,9 +16,7 @@ module.exports = {
    */
   uploadFile(content, filePath, bucketName) {
     const myBucket = storage.bucket(bucketName);
-
     const file = myBucket.file(filePath);
-
     return file.save(content);
   }
 };

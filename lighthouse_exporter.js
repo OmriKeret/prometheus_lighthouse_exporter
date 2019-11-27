@@ -84,7 +84,8 @@ http.createServer(async (req, res) => {
                             const now = new Date();
                             const fileName = `${now.toISOString()}.html`;
                             if (useGCS && GCSBucket) {
-                                await gcs.uploadFile(results.report, `/performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}}/${target}/${strategy}/${fileName}`, GCSBucket);
+                               const result = await gcs.uploadFile(results.report, `/performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}/${encodeURIComponent(target)}/${strategy}/${fileName}`, GCSBucket);
+                            console.log(result);
                             } else {
                                 fs.writeFile(fileName, results.report, () => {});
                             }
