@@ -39,6 +39,7 @@ http.createServer(async (req, res) => {
 
         
         try{
+            var filesToUpload = [];
             var config = configUnparsed ? JSON.parse(configUnparsed) : {};
             console.log('connecting to browser...');
             const browser = browserWSEndpoint ? await puppeteer.connect({browserWSEndpoint}) : await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']});
@@ -46,13 +47,13 @@ http.createServer(async (req, res) => {
             data.push('# HELP lighthouse_exporter_info Exporter Info');
             data.push('# TYPE lighthouse_exporter_info gauge');
             data.push(`lighthouse_exporter_info{version="0.2.4",chrome_version="${await browser.version()}",node_version="${process.version}"} 1`);
-            for (const index in strategies) {
-                const strategy = strategies[index];
-                console.log(`Starting lighthouse on target`)
+            for (const strategy of strategies) {
+                console.log(`Starting ${strategy} audit on ${target}`)
                 await lighthouse(target, {
                     port: url.parse(browser.wsEndpoint()).port,
                     output: htmlReport ? 'html' : 'json',
                     emulatedFormFactor: strategy,
+                    throttlingMethod: 'provided',
                     ...config
                  })
                     .then(async results => {
@@ -80,12 +81,10 @@ http.createServer(async (req, res) => {
                         data.push(`lighthouse_timings{audit="estimated-input-latency", strategy="${strategy}"} ${Math.round(audits["estimated-input-latency"].numericValue)}`);
                         
                         if (htmlReport) {
-                            console.log(`Start uploading result to GCS`);
                             const now = new Date();
                             const fileName = `${now.toISOString()}.html`;
                             if (useGCS && GCSBucket) {
-                               const result = await gcs.uploadFile(results.report, `performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}/${encodeURIComponent(target)}/${strategy}/${fileName}`, GCSBucket);
-                            console.log(result);
+                               filesToUpload.push({path: `performance_audit/reports/${now.getFullYear()}_${now.getMonth()}_${now.getUTCDate()}/${encodeURIComponent(target)}/${strategy}/${fileName}`, data: results.report});
                             } else {
                                 fs.writeFile(fileName, results.report, () => {});
                             }
@@ -97,19 +96,25 @@ http.createServer(async (req, res) => {
             
             }
 
-        console.log('finished auditing succesfully');
-        await browser.close();
+        console.log(`finished auditing ${target} succesfully`);
+        browser.close();
         } catch(error) {
             console.error("Generic", Date(), error);
         }
 
         res.writeHead(200, {"Content-Type": "text/plain"});
         res.write(data.join("\n"));
+        res.end();
+
     } else{
         res.writeHead(404);
     }
 
+    console.log(`Start uploading result to GCS`);
+    filesToUpload.forEach(d => gcs.uploadFile(d.data, d.path, GCSBucket));
+    filesToUpload = [];
+    console.log(`Finished process`);
+
     release();
 
-    res.end();
 }).listen(port);
