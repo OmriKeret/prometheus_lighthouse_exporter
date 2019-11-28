@@ -1,9 +1,9 @@
 const { Storage } = require('@google-cloud/storage');
 const projectId = process.env.GCS_PROJECT_ID;
-const keyFileName = process.env.GCS_KEY_FILE_NAME;
+const keyFilename = process.env.GCS_KEY_FILE_NAME;
 const storage = new Storage({
   projectId,
-  keyFileName
+  keyFilename
 });
 
 module.exports = {
