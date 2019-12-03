@@ -13,7 +13,7 @@ const port = process.env.PORT || 9593;
 const browserWSEndpoint = process.env.WS_ENDPOINT;
 const useGCS = Boolean(process.env.GCS);
 const GCSBucket = process.env.GCS_BUCKET;
-const configPath = process.env.CONFIG_PATH || './test.json';
+const configPath = process.env.CONFIG_PATH;
 console.log(`use gcs is: ${useGCS}, use bucket is ${GCSBucket}`);
 let config = {};
 const mutex = new Mutex();
@@ -28,19 +28,18 @@ http
     const release = await mutex.acquire();
     if (req.aborted) {
       res.end();
-      browser.close();
       release();
       return;
     }
 
     const q = url.parse(req.url, true);
+    let filesToUpload = [];
 
     if (q.pathname === '/probe') {
       const target = q.query.target;
-      const htmlReport = process.env.HTML_REPORT || 'true';
+      const htmlReport = process.env.HTML_REPORT;
       const strategies = ['mobile', 'desktop'];
       const data = [];
-      const filesToUpload = [];
 
       try {
         console.log('connecting to browser...');
@@ -94,12 +93,12 @@ http
                   fs.writeFile(fileName, results.report, () => {});
                 }
               }
-              browser.close();
             })
             .catch(error => {
               console.error('Lighthouse', Date(), error);
             });
         }
+        browser.close();
 
         console.log(`finished auditing ${target} succesfully`);
       } catch (error) {
